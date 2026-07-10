@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SleePlus 올리브영 행사 트래커</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f3f2fa; --bg-card: rgba(255,255,255,0.6); --bg-elevated: rgba(255,255,255,0.75);
+  --border: rgba(61,63,168,0.16); --border-hover: rgba(61,63,168,0.38);
+  --text: #1b1b34; --text-secondary: #55556f; --text-muted: #9393ac;
+  --purple: #3D3FA8; --purple-light: #6366b8; --purple-glow: rgba(61,63,168,0.1);
+  --lime: #C8F135; --lime-text: #7a9e00; --lime-dim: rgba(200,241,53,0.3);
+  --green: #16a34a; --green-bg: rgba(22,163,74,0.1);
+  --red: #dc2626; --red-bg: rgba(220,38,38,0.08);
+  --amber: #d97706; --amber-bg: rgba(217,119,6,0.08);
+  --gray-bg: rgba(140,140,168,0.1);
+  --radius: 20px; --glass-blur: blur(30px);
+  --shadow: 0 4px 16px rgba(61,63,168,0.08), 0 12px 32px rgba(61,63,168,0.05);
+}
+body {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; position: relative;
+}
+body::before, body::after {
+  content: ''; position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+}
+body::before {
+  width: 800px; height: 800px; top: -220px; left: -220px;
+  background: radial-gradient(circle, rgba(61,63,168,0.16) 0%, rgba(61,63,168,0.05) 40%, transparent 70%);
+  filter: blur(80px);
+}
+body::after {
+  width: 640px; height: 640px; bottom: -10%; right: -160px;
+  background: radial-gradient(circle, rgba(200,241,53,0.32) 0%, rgba(200,241,53,0.08) 40%, transparent 70%);
+  filter: blur(80px);
+}
+
+.app-shell { display: flex; gap: 32px; max-width: 1560px; margin: 0 auto; padding: 32px 40px 56px; position: relative; z-index: 1; align-items: flex-start; }
+
+/* ── Sidebar ── */
+.sidebar { position: sticky; top: 32px; width: 216px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+.sidebar-logo { padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.sidebar-logo .logo { height: 40px; opacity: 0.97; display: block; }
+.sidebar-title { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 14px; line-height: 1.4; }
+.sidebar-title span { display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.side-nav { display: flex; flex-direction: column; gap: 4px; }
+.side-link { text-align: left; padding: 12px 16px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.side-link:hover { background: var(--bg-card); }
+.side-link.active { background: var(--purple-glow); color: var(--purple); border-color: var(--lime); }
+.side-link .nav-count { float: right; background: var(--purple-glow); color: var(--purple); font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 100px; }
+.sidebar-foot { margin-top: auto; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+  background: rgba(255,255,255,0.6); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border); border-radius: 100px; font-size: 12px; color: var(--text-secondary);
+  box-shadow: 0 2px 10px rgba(61,63,168,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.pill strong { color: var(--text); font-weight: 600; }
+.pill .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 8px rgba(200,241,53,0.7); display: inline-block; flex-shrink: 0; }
+
+/* ── Content ── */
+.content { flex: 1; min-width: 0; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.card {
+  background: var(--bg-card); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border); border-top: 1px solid rgba(255,255,255,0.75); border-radius: var(--radius);
+  padding: 24px; margin-bottom: 20px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 10%, rgba(61,63,168,0.25) 50%, transparent 90%);
+}
+.card::after {
+  content: ''; position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
+  background: linear-gradient(145deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 25%, transparent 50%);
+}
+
+.section-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.section-title { font-size: 15px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.count-badge { background: var(--purple-glow); color: var(--purple); font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 100px; }
+.section-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 14px; }
+
+/* ── 진행상황 (카드) ── */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-item { display: flex; align-items: center; gap: 14px; padding: 12px 40px 12px 14px; border-radius: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-left: 4px solid var(--text-muted); position: relative; }
+.action-item.sev-red { border-left-color: var(--red); }
+.action-item.sev-amber { border-left-color: var(--amber); }
+.action-item.sev-gray { border-left-color: var(--text-muted); }
+.action-x { position: absolute; top: 8px; right: 8px; }
+.action-dday { flex-shrink: 0; min-width: 50px; text-align: center; font-size: 12px; font-weight: 800; padding: 6px 8px; border-radius: 8px; color: var(--text-muted); background: var(--gray-bg); }
+.action-item.sev-red .action-dday { color: var(--red); background: var(--red-bg); }
+.action-item.sev-amber .action-dday { color: var(--amber); background: var(--amber-bg); }
+.action-body { flex: 1; min-width: 0; }
+.action-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.action-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.action-links { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+.action-btn { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 8px; background: var(--purple-glow); color: var(--purple); text-decoration: none; white-space: nowrap; border: 1px solid transparent; transition: all 0.15s; }
+.action-btn:hover { border-color: var(--purple-light); }
+.action-empty { color: var(--text-muted); font-size: 13px; padding: 8px 4px; }
+
+/* ── 행사 테이블 ── */
+.toggle-past { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); cursor: pointer; user-select: none; }
+.toggle-past input { accent-color: var(--purple); width: 15px; height: 15px; cursor: pointer; }
+.table-scroll { overflow-x: auto; }
+.event-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.event-table th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.event-table th:nth-child(1) { width: 110px; }
+.event-table th:nth-child(2) { width: 200px; }
+.event-table th:nth-child(3) { width: 90px; }
+.event-table th:nth-child(4) { width: 118px; }
+.event-table th:nth-child(6) { width: 120px; }
+.event-table th:nth-child(7) { width: 90px; }
+.event-table th:nth-child(8) { width: 36px; }
+.event-table td { padding: 12px; border-bottom: 1px solid rgba(61,63,168,0.06); vertical-align: top; }
+.event-table tr:last-child td { border-bottom: none; }
+.event-table tr.row-ended { opacity: 0.55; }
+.event-table tr.row-warn-red { background: rgba(220,38,38,0.05); }
+.event-table tr.row-warn-amber { background: rgba(217,119,6,0.05); }
+.et-name { font-weight: 700; color: var(--text); white-space: nowrap; }
+.channel-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.channel-tag .swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.warn-chip { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; margin: 3px 4px 0 0; cursor: help; }
+.warn-chip.sev-red { color: var(--red); background: var(--red-bg); }
+.warn-chip.sev-amber { color: var(--amber); background: var(--amber-bg); }
+.month-sep td { padding: 14px 10px 6px !important; font-size: 12px; font-weight: 800; color: var(--purple-light); text-transform: none; border-bottom: 1px solid var(--border) !important; background: transparent; letter-spacing: 0.3px; }
+.memo-input { width: 100%; max-width: 460px; font-size: 11px; border: 1px dashed var(--border); border-radius: 6px; padding: 4px 8px; background: transparent; color: var(--text-secondary); font-family: inherit; outline: none; transition: border-color 0.15s; margin-top: 6px; }
+.memo-input:focus { border-color: var(--purple-light); border-style: solid; color: var(--text); }
+.memo-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+.status-pill { display: inline-block; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.price-inline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+.price-item { white-space: nowrap; font-size: 12px; }
+.price-item .pl-name { color: var(--text-secondary); }
+.price-item .pl-price { font-weight: 700; color: var(--text); margin-left: 5px; }
+.et-ppm { font-size: 12px; white-space: nowrap; }
+.et-ppm.inferred { color: var(--text-muted); font-style: italic; }
+.et-contact { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.et-mail-link { font-size: 11px; color: var(--purple-light); text-decoration: none; font-weight: 600; }
+.et-empty-note { font-size: 12px; color: var(--text-muted); }
+.x-btn { width: 24px; height: 24px; border-radius: 50%; border: none; background: transparent; color: var(--text-muted); font-size: 13px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; font-family: inherit; flex-shrink: 0; opacity: 0.55; }
+.x-btn:hover { background: var(--red-bg); color: var(--red); opacity: 1; }
+.x-btn.restore:hover { background: var(--green-bg); color: var(--green); }
+tr:hover .x-btn, .action-item:hover .x-btn { opacity: 1; }
+.x-cell { width: 36px; text-align: center; vertical-align: top; }
+.restore-note { font-size: 12px; color: var(--text-muted); padding: 8px 4px 0; }
+.restore-note a { color: var(--purple-light); font-weight: 600; cursor: pointer; text-decoration: none; }
+.table-toggles { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+
+/* ── PPM ── */
+.ppm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ppm-table th { padding: 10px 12px; font-size: 12px; color: var(--text-secondary); border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; vertical-align: bottom; }
+.ppm-table th.round-col { color: var(--purple); font-weight: 800; font-size: 13px; background: var(--purple-glow); border-radius: 10px 10px 0 0; }
+.ppm-table th .round-sub { display: block; font-size: 10px; font-weight: 500; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+.ppm-table th.round-col.warn .round-sub { color: var(--amber); font-weight: 700; }
+.ppm-table td { padding: 12px; border-bottom: 1px solid rgba(61,63,168,0.06); text-align: center; white-space: nowrap; }
+.ppm-table td.tl { text-align: left; }
+.ppm-table td.code { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; }
+.ppm-table tr:last-child td { border-bottom: none; }
+.ppm-table td.val-cell { font-weight: 800; color: var(--text); background: rgba(200,241,53,0.18); }
+.ppm-table td.val-cell .val-sub { display: block; font-size: 10px; font-weight: 500; color: var(--text-secondary); }
+.ppm-table td.no-val { color: var(--text-muted); background: var(--gray-bg); font-size: 12px; }
+.ppm-table td.note-cell { text-align: left; font-size: 11px; color: var(--text-secondary); white-space: normal; min-width: 140px; }
+
+/* ── 회신 도우미 ── */
+.rh-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+.rh-title { font-size: 17px; font-weight: 800; color: var(--text); }
+.rh-meta { font-size: 12px; color: var(--text-secondary); }
+.rh-section { margin-top: 18px; }
+.rh-section-title { font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.rh-section-title::before { content: ''; width: 3px; height: 14px; background: var(--lime); border-radius: 2px; }
+.check-line { font-size: 13px; padding: 4px 0; display: flex; gap: 8px; align-items: flex-start; color: var(--text-secondary); }
+.check-line.bad { color: var(--red); font-weight: 600; }
+.check-line.unknown { color: var(--amber); }
+.reco-block { padding: 14px; border-radius: 12px; background: var(--bg-elevated); border: 1px solid var(--border); margin-bottom: 10px; }
+.reco-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ask-badge { display: inline-block; font-size: 10px; font-weight: 700; color: var(--purple); background: var(--purple-glow); border-radius: 100px; padding: 2px 9px; margin-right: 8px; vertical-align: middle; }
+.reco-name { font-weight: 700; font-size: 13px; color: var(--text); }
+.reco-name .code { font-size: 11px; color: var(--text-muted); font-family: ui-monospace, monospace; margin-left: 8px; }
+.reco-range { font-size: 16px; font-weight: 800; color: var(--purple); }
+.reco-range .margin { font-size: 12px; font-weight: 600; color: var(--lime-text); margin-left: 6px; }
+.hist-chip { display: inline-block; font-size: 11px; background: var(--gray-bg); border-radius: 6px; padding: 3px 9px; margin: 6px 6px 0 0; color: var(--text-secondary); }
+.calc-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); flex-wrap: wrap; }
+.calc-row label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.calc-input { width: 100px; font-size: 13px; font-weight: 700; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.6); color: var(--text); font-family: inherit; outline: none; }
+.calc-input:focus { border-color: var(--purple-light); }
+.calc-result { font-size: 12px; color: var(--text-muted); display: flex; gap: 14px; }
+.calc-result b { color: var(--purple); font-size: 13px; }
+.calc-result .unit b { color: var(--lime-text); }
+.form-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.form-table th { padding: 8px 10px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.form-table td { padding: 9px 10px; border-bottom: 1px solid rgba(61,63,168,0.06); text-align: left; white-space: nowrap; }
+.form-table tr:last-child td { border-bottom: none; }
+.form-table .fill-needed { color: var(--amber); font-weight: 700; }
+.form-table .suggest { color: var(--purple); font-weight: 700; }
+.rh-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; line-height: 1.6; }
+
+.footer { text-align: center; padding: 24px 0 0; color: var(--text-muted); font-size: 12px; }
+
+@media (max-width: 980px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { position: static; width: 100%; flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .sidebar-logo { border-bottom: none; padding-bottom: 0; }
+  .side-nav { flex-direction: row; flex-wrap: wrap; }
+  .sidebar-foot { margin-top: 0; margin-left: auto; }
+  .sidebar-title { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img class="logo" id="logoImg" alt="SleePlus">
+      <div class="sidebar-title">올리브영 행사 트래커<span>Event & PPM Tracker</span></div>
+    </div>
+    <nav class="side-nav">
+      <button class="side-link active" data-tab="progress">진행상황 <span class="nav-count" id="navProgressCount"></span></button>
+      <button class="side-link" data-tab="reply">회신 도우미 <span class="nav-count" id="navReplyCount"></span></button>
+      <button class="side-link" data-tab="events">행사 테이블</button>
+      <button class="side-link" data-tab="ppm">PPM 현황</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="pill"><span class="live-dot"></span><strong id="generated"></strong></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="tab-panel active" id="panel-progress">
+      <div class="card">
+        <div class="section-title-row">
+          <div class="section-title">진행상황 <span class="count-badge" id="actionCount">0</span></div>
+        </div>
+        <div class="section-note">메일 신청 후 <span id="staleDays"></span>일 이상 회신 없는 건은 무산으로 보고 자동 제외됩니다.</div>
+        <div class="action-list" id="actionQueue"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-reply">
+      <div class="section-note" style="margin-bottom:14px;">💬 새 그레이스 메일을 반영하려면 클로드에게 "행사 트래커 갱신해줘"라고 말하세요 — 이 페이지는 정적 파일이라 자동으로 새 메일을 읽어오지 않습니다.</div>
+      <div id="replyCards"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-events">
+      <div class="card">
+        <div class="section-title-row">
+          <div class="section-title">행사 테이블</div>
+          <div class="table-toggles">
+            <label class="toggle-past">
+              <input type="checkbox" id="showPastToggle"> 지난 행사 보기 (<span id="pastCount">0</span>)
+            </label>
+            <label class="toggle-past">
+              <input type="checkbox" id="showHiddenToggle"> 지운 행사 보기 (<span id="hiddenCount">0</span>)
+            </label>
+          </div>
+        </div>
+        <div class="section-note" id="supplyNote"></div>
+        <div class="table-scroll">
+          <table class="event-table">
+            <thead>
+              <tr><th>채널</th><th>행사</th><th>상태</th><th>기간</th><th>상품별 최종행사가</th><th>PPM</th><th>담당/메일</th><th></th></tr>
+            </thead>
+            <tbody id="eventTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-ppm">
+      <div class="card">
+        <div class="section-title" style="margin-bottom:14px;">PPM 현황</div>
+        <div class="table-scroll">
+          <table class="ppm-table" id="ppmTable"></table>
+        </div>
+        <div class="section-note" style="margin-top:12px;">공급가는 supply_prices.json에서 관리합니다 (그레이스 메일에는 공급가가 없어 직접 입력). 행사가는 각 회차에 걸린 행사 메일에서 추출.</div>
+      </div>
+    </div>
+
+    <div class="footer">SleePlus × 올리브영 행사 트래커 — Auto-generated by oliveyoung-event-tracker</div>
+  </main>
+</div>
+
+<script>
+const D = {"generated": "2026-07-10 15:10", "today": "2026-07-10", "ppm_rounds": [{"round": 8, "label": "8차 PPM", "start_date": "2026-05-31", "end_date": "2026-08-29", "confidence": "explicit", "source": {"message_id": "19f49779566dfbe0", "subject": "[올리브베러] 슬리플러스 - 26년 9월 올영세일 Seg.Week / OB 오늘의 특가 행사 상품 모집의 건 - 7/13(월) 오전까지", "received_date": "2026-07-10", "found_in": "세그위크 요청 테이블, 슬리프레소 행 '6차~8차 PPM' 컬럼 (05월31일~08월29일) — 상품별로 PPM 누적 구간이 다를 수 있음, 확정 메일은 대부분 PPM 회차 날짜를 직접 명시하지 않음"}}, {"round": 9, "label": "9차 PPM", "start_date": "2026-08-30", "end_date": null, "confidence": "explicit", "source": {"message_id": "19f49779566dfbe0", "subject": "[올리브베러] 슬리플러스 - 26년 9월 올영세일 Seg.Week / OB 오늘의 특가 행사 상품 모집의 건 - 7/13(월) 오전까지", "received_date": "2026-07-10", "found_in": "메일 본문 '행사 제안 상품은 9차 ppm(매가할인) 적용되어야 합니다' + 오설록 행 '8차~9차PPM' 컬럼 09월30일까지 시작일 08월30일"}}], "ppm_status": [{"round": 8, "label": "8차 PPM", "start_date": "2026-05-31", "end_date": "2026-08-29", "dday_text": "종료 2026-08-29 (D-50)", "warn": false, "events": [{"id": "evt-260710-h카테고리특가-슬리핑보틀라인", "label": "H카테고리특가·올리브영", "ended": false, "explicit": false}, {"id": "evt-260710-h카테고리특가-슬리프레소", "label": "H카테고리특가·올리브영", "ended": false, "explicit": true}, {"id": "evt-260728-오특-슬리핑보틀", "label": "오특·올리브베러", "ended": false, "explicit": false}, {"id": "evt-2608-베러pick-슬리프레소", "label": "베러PICK·올리브베러", "ended": false, "explicit": true}, {"id": "evt-260602-세그위크-슬리핑보틀", "label": "세그위크·올리브베러", "ended": true, "explicit": false}, {"id": "evt-260531-온라인단독추가쿠폰-슬리프레소", "label": "온라인단독추가쿠폰·올리브영", "ended": true, "explicit": false}, {"id": "evt-260701-위클리초특가-슬리핑보틀", "label": "위클리초특가·올리브영", "ended": false, "explicit": false}, {"id": "evt-260701-위클리베러프라이스-슬리핑보틀", "label": "위클리베러프라이스·올리브베러", "ended": true, "explicit": false}, {"id": "evt-260710-브랜드이슈오특-슬리핑보틀", "label": "브랜드이슈_오특·올리브영", "ended": false, "explicit": false}, {"id": "evt-260811-브랜드이슈오특-슬리핑보틀4개입", "label": "브랜드이슈_오특·올리브영", "ended": false, "explicit": false}, {"id": "evt-260801-베러pick-슬리핑보틀", "label": "베러PICK·올리브베러", "ended": false, "explicit": false}]}, {"round": 9, "label": "9차 PPM", "start_date": "2026-08-30", "end_date": null, "dday_text": "종료일 미확정 · 그레이스 확인 필요", "warn": true, "events": [{"id": "evt-2609-세그위크-슬리프레소", "label": "세그위크·올리브베러", "ended": false, "explicit": true}, {"id": "evt-260830-이번세일키워드-슬리핑보틀", "label": "이번세일키워드·올리브영", "ended": false, "explicit": false}, {"id": "evt-260900-일반추가쿠폰-슬리핑보틀", "label": "일반추가쿠폰·올리브영", "ended": false, "explicit": false}, {"id": "evt-260830-베러기프트-슬리핑보틀", "label": "베러기프트·올리브베러", "ended": false, "explicit": false}]}], "ppm_table": [{"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "normal": 12900, "supply": null, "rounds": {"8": {"행사가": 9900}, "9": null}, "note": "8차 PPM: H카테고리특가·베러PICK·온라인단독추가쿠폰"}, {"code": "8809753150015", "name": "슬리핑보틀 100ml", "normal": 5000, "supply": null, "rounds": {"8": {"행사가": 4000}, "9": null}, "note": "8차 PPM: H카테고리특가·위클리초특가"}, {"code": "8809753150039", "name": "슬리핑보틀 6개입", "normal": 30000, "supply": null, "rounds": {"8": {"행사가": 23000}, "9": null}, "note": "8차 PPM: H카테고리특가"}, {"code": "8809753150060", "name": "카카오프렌즈 슬리핑보틀 100ml", "normal": 5000, "supply": null, "rounds": {"8": {"행사가": 4000}, "9": {"행사가": 4000}}, "note": "8차 PPM: H카테고리특가·오특·세그위크·위클리초특가·브랜드이슈_오특·베러PICK / 9차 PPM: 이번세일키워드"}, {"code": "8809753150084", "name": "카카오프렌즈 슬리핑보틀 100ml 4개입 기획", "normal": 20000, "supply": null, "rounds": {"8": {"행사가": 16000}, "9": {"행사가": 16000}}, "note": "8차 PPM: H카테고리특가·오특·베러PICK / 9차 PPM: 이번세일키워드·베러기프트"}, {"code": "8809753150077", "name": "카카오프렌즈 슬리핑보틀 100ml 6개입", "normal": 30000, "supply": null, "rounds": {"8": {"행사가": 23000}, "9": {"행사가": 23000}}, "note": "8차 PPM: H카테고리특가·오특·세그위크·브랜드이슈_오특·베러PICK / 9차 PPM: 이번세일키워드·일반추가쿠폰"}], "events": [{"id": "evt-260710-h카테고리특가-슬리핑보틀라인", "event_type": "H카테고리특가", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-07-10", "end": "2026-07-19"}, "쿠폰할인": {"start": "2026-07-10", "end": "2026-07-19"}, "display": {"start": "2026-07-10", "end": "2026-07-19"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150077", "product_name": "카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": 4000, "최종행사가": 19000, "최종할인율": 0.367, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150039", "product_name": "슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": 4000, "최종행사가": 19000, "최종할인율": 0.367, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150084", "product_name": "카카오프렌즈 슬리핑보틀 100ml 4개입 기획", "정상가": 20000, "행사가": 16000, "추가쿠폰": 1000, "최종행사가": 15000, "최종할인율": 0.25, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150060", "product_name": "카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": 800, "최종행사가": 3200, "최종할인율": 0.36, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150015", "product_name": "슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": 800, "최종행사가": 3200, "최종할인율": 0.36, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "구민지", "email": "minji.koo@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19eeccd65ee290ee", "calendar_event_id": null, "history": [{"message_id": "19eeccd65ee290ee", "thread_id": "19eeccd65ee290ee", "received_date": "2026-06-22", "subject": "[올리브영/건강식품] 행사 확정 안내의 건 Re: [올리브영/건강식품] 26년 7월 <H 카테고리 특가> 행사 모집 안내의 건 - 5/21(목) 오전 중", "sender": "minji.koo@graceint.com", "change_summary": "최초 확정", "snapshot": null}, {"message_id": null, "thread_id": null, "received_date": "2026-05-20", "subject": "(헬시푸드)26년 7월 H카테고리 특가 상품 취합_0521까지_슬리플러스.xlsx", "sender": null, "change_summary": "H카테고리특가 취합 엑셀(헬시푸드팀 제출본)에서 동일 최종가(3200/19000, 기간7/10~7/19) 확인 — 기존 메일 데이터와 일치, 보강만. 파일 내 최종할인율 표기(0.2/0.233)는 열 정렬 이슈로 최종행사가만 신뢰", "snapshot": null}], "notes": "oliveyoung-event-tracker 구축 시 2026-07-10 대화에서 실제 메일 내용을 근거로 수동 시딩 | 보강 소스: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(헬시푸드)26년 7월 H카테고리 특가 상품 취합_0521까지_슬리플러스.xlsx | 2026-07-10 대화에서 매가할인 종료일 오기(7/20→7/19) 수정 — 보강 소스에도 7/19로 명시되어 있었음. 슬리프레소 건(evt-260710-h카테고리특가-슬리프레소)과 기간·행사유형·채널 동일해 행사 테이블에서 한 행으로 병합됨", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260710-h카테고리특가-슬리프레소", "event_type": "H카테고리특가", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": {"start": "2026-07-10", "end": "2026-07-19"}, "쿠폰할인": {"start": "2026-07-10", "end": "2026-07-19"}, "display": {"start": "2026-07-10", "end": "2026-07-19"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": 8, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리플러스 슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 9900, "추가쿠폰": 2400, "최종행사가": 7500, "최종할인율": 0.419, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "김다연", "email": "dayeon.kim@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19ef1e249f6bf271", "calendar_event_id": null, "history": [{"message_id": "19ef1e249f6bf271", "thread_id": "19ef1e249f6bf271", "received_date": "2026-06-22", "subject": "(슬리플러스 확정안내) Re: 슬리플러스 확인요청) Re: [올리브영/일반식품] 26년 7월 <H 카테고리 특가> 상품 모집의 건 - 5/20(수) 오전까지", "sender": "dayeon.kim@graceint.com", "change_summary": "최초 확정", "snapshot": null}, {"message_id": null, "thread_id": null, "received_date": "2026-05-19", "subject": "(공유용) 26년 7월 H카테고리 특가 상품 취합양식_머스카.xlsx", "sender": null, "change_summary": "H카테고리특가 취합 엑셀(머스카 제출본)에서 동일 가격(정상가12900/행사가8900/쿠폰1400/최종7500/41.86%, 기간7/10~7/19) 확인 — 기존 메일 데이터와 일치, 보강만", "snapshot": null}], "notes": "oliveyoung-event-tracker 구축 시 2026-07-10 대화에서 실제 메일 내용을 근거로 수동 시딩 | 보강 소스: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(공유용) 26년 7월 H카테고리 특가 상품 취합양식_머스카.xlsx", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": true}}, {"id": "evt-260728-오특-슬리핑보틀", "event_type": "오특", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-07-28", "end": "2026-07-28"}, "쿠폰할인": {"start": "2026-07-28", "end": "2026-07-28"}, "display": {"start": "2026-07-28", "end": "2026-07-28"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": 600, "최종행사가": 3400, "최종할인율": 0.32, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": 3200, "최종행사가": 19800, "최종할인율": 0.34, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150084", "product_name": "카카오프렌즈 슬리핑보틀 100ml 4개입 기획 (+온열 수면안대 증정)", "정상가": 20000, "행사가": 16000, "추가쿠폰": 2000, "최종행사가": 14000, "최종할인율": 0.3, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "구민지", "email": "minji.koo@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19efd23873d99945", "calendar_event_id": null, "history": [{"message_id": "19efd23873d99945", "thread_id": "19efd23873d99945", "received_date": "2026-06-25", "subject": "[OY온/건강식품] 7월 오특 행사 진행 안내의 건_올리브베러", "sender": "minji.koo@graceint.com", "change_summary": "최초 확정", "snapshot": null}], "notes": "oliveyoung-event-tracker 구축 시 2026-07-10 대화에서 실제 메일 내용을 근거로 수동 시딩", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": null, "쿠폰할인": null, "display": {"start": "2026-08-01", "end": "2026-08-29"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": 8, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리플러스 슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 8500, "추가쿠폰": null, "최종행사가": 7500, "최종할인율": null, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "김다연", "email": "dayeon.kim@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19f36ae1a264cf9b", "calendar_event_id": null, "history": [{"message_id": "19f36ae1a264cf9b", "thread_id": "19f36ae1a264cf9b", "received_date": "2026-07-06", "subject": "[확정 안내, ~7/8(수)까지] Re: (준비수량 및 일정 확인요청, ~금일 중) Re: [리마인드, ~금일 오전] Fwd: [올리브베러/일반식품] 슬리플러스 '26년 8차 베러PICK 상품 모집 안내의 건 - 6/30(화) 오전까지", "sender": "dayeon.kim@graceint.com", "change_summary": "최초 확정 (기간 미정, '1개월'로만 안내)", "snapshot": null}, {"message_id": null, "thread_id": null, "received_date": "2026-06-01", "subject": "슬리플러스_26.06.01_(일반)베러픽.xlsx", "sender": null, "change_summary": "베러픽 최초 제안 엑셀 — 제안 단계 베러픽 행사가 9900원(1달간), 베러특가 PPW 7500원(기간미정). 이후 그레이스 회신(7/6, message 19f36ae1a264cf9b)에서 8500원으로 확정 — price_rows는 확정가(8500) 유지, 참고용으로만 history 추가", "snapshot": null}], "notes": "기간(8/1~8/29)은 2026-07-10 대화에서 사용자가 확인해 반영 — 8차 PPM(2026-05-31~08-29) 종료일에 맞춰 8월 한 달(8/29까지)로 확정. | 최초 제안 소스: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\슬리플러스_26.06.01_(일반)베러픽.xlsx (제안가 9900원 -> 확정가 8500원)", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": true}}, {"id": "evt-2609-세그위크-슬리프레소", "event_type": "세그위크", "channel": "올리브베러", "workflow_stage": "회신대기", "products": ["슬리프레소"], "date_windows": {"매가할인": null, "쿠폰할인": null, "display": {"start": "2026-08-30", "end": "2026-09-05"}}, "period_note": null, "reply_deadline": "2026-07-13", "ppm_round_ref": 9, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리플러스 슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "행사매가", "정상가": 12900, "행사가": null, "추가쿠폰": null, "최종행사가": null, "최종할인율": null, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150046", "product_name": "슬리플러스 슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "세그위크가", "정상가": 12900, "행사가": null, "추가쿠폰": null, "최종행사가": null, "최종할인율": null, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150046", "product_name": "슬리플러스 슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "OB오늘의특가", "정상가": 12900, "행사가": null, "추가쿠폰": null, "최종행사가": null, "최종할인율": null, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "김다연", "email": "dayeon.kim@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19f49779566dfbe0", "calendar_event_id": null, "history": [{"message_id": "19f49779566dfbe0", "thread_id": "19f49779566dfbe0", "received_date": "2026-07-10", "subject": "[올리브베러] 슬리플러스 - 26년 9월 올영세일 Seg.Week / OB 오늘의 특가 행사 상품 모집의 건 - 7/13(월) 오전까지", "sender": "dayeon.kim@graceint.com", "change_summary": "그레이스 제안 요청 수신, 아직 회신 전", "snapshot": null}], "notes": "우리가 회신해야 하는 제안 요청 메일 — 행사매가/세그위크가/OB오늘의특가 세 가지 가격을 각각 회신해야 함(price_rows를 ask_label로 3분할). 8차 베러PICK(위 항목)과 8/30~31 인접 여부 확인 필요.", "ended": false, "stale": false, "ppm_match": {"round": 9, "label": "9차 PPM", "end_date": null, "explicit": true}}, {"id": "evt-260309-위클리베러프라이스-슬리핑보틀100ml", "event_type": "위클리베러프라이스", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-03-09", "end": "2026-03-15"}, "쿠폰할인": null, "display": {"start": "2026-03-09", "end": "2026-03-15"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150015", "product_name": "슬리핑보틀 100ml (1병)", "정상가": 5000, "행사가": 4000, "추가쿠폰": 400, "최종행사가": 3600, "최종할인율": 0.28, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-01-26", "subject": "(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx", "sender": null, "change_summary": "위클리베러프라이스 3차(1차수) 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx (3차 취합, 1차수 행)", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260316-위클리베러프라이스-슬리프레소", "event_type": "위클리베러프라이스", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": {"start": "2026-03-16", "end": "2026-03-22"}, "쿠폰할인": null, "display": {"start": "2026-03-16", "end": "2026-03-22"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 9900, "추가쿠폰": 2000, "최종행사가": 7900, "최종할인율": 0.3876, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-01-26", "subject": "(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx", "sender": null, "change_summary": "위클리베러프라이스 3차(2차수) 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx (3차 취합, 2차수 행)", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260323-위클리베러프라이스-슬리핑보틀6개입", "event_type": "위클리베러프라이스", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-03-23", "end": "2026-03-29"}, "쿠폰할인": null, "display": {"start": "2026-03-23", "end": "2026-03-29"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150039", "product_name": "슬리핑보틀 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": 1000, "최종행사가": 22000, "최종할인율": 0.2667, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-01-26", "subject": "(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx", "sender": null, "change_summary": "위클리베러프라이스 3차(3차수) 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(취합)26년 3차 위클리베러프라이스 취합 양식_슬리핑보틀.xlsx (3차 취합, 3차수 행)", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260301-온라인단독추가쿠폰-슬리핑보틀", "event_type": "온라인단독추가쿠폰", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-03-01", "end": "2026-03-07"}, "쿠폰할인": null, "display": {"start": "2026-03-01", "end": "2026-03-07"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150015", "product_name": "슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3600, "최종할인율": 0.28, "비고": "정률쿠폰 10%", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-02-03", "subject": "일반식품 (2603 올영세일) 온라인 단독 추가쿠폰 취합 양식.xlsx", "sender": null, "change_summary": "2603 올영세일 온라인단독 추가쿠폰 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\일반식품 (2603 올영세일) 온라인 단독 추가쿠폰 취합 양식.xlsx", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260317-오특-슬리핑보틀100ml", "event_type": "오특", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-03-17", "end": "2026-03-17"}, "쿠폰할인": null, "display": {"start": "2026-03-17", "end": "2026-03-17"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150015", "product_name": "슬리핑보틀 100mL", "정상가": 5000, "행사가": 4000, "추가쿠폰": 400, "최종행사가": 3600, "최종할인율": 0.28, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-02-10", "subject": "260210_일반식품 오특 모집 양식_슬리핑보틀.xlsx", "sender": null, "change_summary": "일반식품 오특 모집 양식에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\260210_일반식품 오특 모집 양식_슬리핑보틀.xlsx", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260324-오특-슬리핑보틀6개입", "event_type": "오특", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-03-24", "end": "2026-03-24"}, "쿠폰할인": null, "display": {"start": "2026-03-24", "end": "2026-03-24"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150039", "product_name": "슬리핑보틀 100mL 6개입", "정상가": 30000, "행사가": 30000, "추가쿠폰": 8400, "최종행사가": 21600, "최종할인율": 0.28, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-02-10", "subject": "260210_일반식품 오특 모집 양식_슬리핑보틀.xlsx", "sender": null, "change_summary": "일반식품 오특 모집 양식에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\260210_일반식품 오특 모집 양식_슬리핑보틀.xlsx", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260415-브랜드이슈오특-슬리핑보틀", "event_type": "브랜드이슈_오특", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-04-15", "end": "2026-04-15"}, "쿠폰할인": null, "display": {"start": "2026-04-15", "end": "2026-04-15"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150015", "product_name": "슬리핑보틀 100mL", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3400, "최종할인율": 0.32, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150039", "product_name": "슬리핑보틀 100mL 6개입", "정상가": 30000, "행사가": 30000, "추가쿠폰": null, "최종행사가": 19800, "최종할인율": 0.34, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-02-20", "subject": "26년 4월 브랜드이슈_오특_슬리핑보틀.xlsx", "sender": null, "change_summary": "26년 4월 브랜드이슈/오특 MKT플랜+온라인오특 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26년 4월 브랜드이슈_오특_슬리핑보틀.xlsx — 일정은 'MKT 플랜' 표의 4/15(수) 기준, 온라인오특 표는 별도 일자 없어 동일 일자로 간주", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260413-오특-슬리프레소", "event_type": "오특", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": {"start": "2026-04-13", "end": "2026-04-13"}, "쿠폰할인": null, "display": {"start": "2026-04-13", "end": "2026-04-13"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 9900, "추가쿠폰": 2400, "최종행사가": 7500, "최종할인율": 0.4186, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-03-11", "subject": "26.03_일반식품 오특 모집 양식_2차.xlsx", "sender": null, "change_summary": "일반식품 오특 모집 양식(2차)에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26.03_일반식품 오특 모집 양식_2차.xlsx", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260600-차별화행사-슬리핑보틀", "event_type": "차별화행사", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": null, "쿠폰할인": null, "display": null}, "period_note": "2026년 6월 올영세일 <일반 추가쿠폰(OB 브랜드위크)> — 파일에 구체적 일자 미기재", "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150015", "product_name": "슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3400, "최종할인율": 0.32, "비고": "정률쿠폰 15%", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150039", "product_name": "슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 19780, "최종할인율": 0.34, "비고": "정률쿠폰 14%", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3400, "최종할인율": 0.32, "비고": "정률쿠폰 15%", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 19780, "최종할인율": 0.34, "비고": "정률쿠폰 14%", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-03-30", "subject": "(2606 올영세일) 차별화행사 일반 추가쿠폰 모집 파일 (건식)_슬리핑보틀.xlsx", "sender": null, "change_summary": "26년 6월 올영세일 일반 추가쿠폰(OB 브랜드위크) 모집 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(2606 올영세일) 차별화행사 일반 추가쿠폰 모집 파일 (건식)_슬리핑보틀.xlsx — 날짜 미기재로 date_windows 미확정", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260522-오특-슬리프레소", "event_type": "오특", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": {"start": "2026-05-22", "end": "2026-05-22"}, "쿠폰할인": null, "display": {"start": "2026-05-22", "end": "2026-05-22"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 9900, "추가쿠폰": 2400, "최종행사가": 7500, "최종할인율": 0.4186, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-04-10", "subject": "26.04_일반식품 오특 모집 양식.xlsx", "sender": null, "change_summary": "일반식품 오특 모집 양식에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26.04_일반식품 오특 모집 양식.xlsx", "ended": true, "stale": false, "ppm_match": null}, {"id": "evt-260602-세그위크-슬리핑보틀", "event_type": "세그위크", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-06-02", "end": "2026-06-02"}, "쿠폰할인": null, "display": {"start": "2026-06-02", "end": "2026-06-02"}}, "period_note": null, "reply_deadline": "2026-04-21", "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3200, "최종할인율": 0.36, "비고": "정률쿠폰 20%, PPM/W 4000", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": 4000, "최종행사가": 19000, "최종할인율": 0.37, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-04-20", "subject": "2606 올영세일 OB 차별화행사 취합양식_0421제출마감_슬리플러스.xlsx", "sender": null, "change_summary": "2606 올영세일 OB Seg.데이(나이트케어 6/2) 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\2606 올영세일 OB 차별화행사 취합양식_0421제출마감_슬리플러스.xlsx — 'OB Seg.데이' 나이트케어(수면관련 일반식품) 6/2 슬롯, SEG 일자 매핑표(5/31~6/1 샷류, 6/2 나이트케어, 6/3~6/4 프로틴, 6/5~6/6 슬리밍) 기준. 같은 파일 내 '오늘의특가(온)'/'일반추가쿠폰' 시트는 예시행만 있고 실제 제출 데이터 없어 스킵", "ended": true, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260531-온라인단독추가쿠폰-슬리프레소", "event_type": "온라인단독추가쿠폰", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리프레소"], "date_windows": {"매가할인": {"start": "2026-05-31", "end": "2026-06-06"}, "쿠폰할인": null, "display": {"start": "2026-05-31", "end": "2026-06-06"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150046", "product_name": "슬리핑보틀 슬리프레소 디카페인 콜드브루 2g 10개입", "정상가": 12900, "행사가": 9900, "추가쿠폰": null, "최종행사가": 8910, "최종할인율": 0.3093, "비고": "정률쿠폰 10%", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-04-24", "subject": "일반식품 (2606 올영세일) 온라인 단독 추가쿠폰 취합 양식.xlsx", "sender": null, "change_summary": "2606 올영세일 온라인단독 추가쿠폰 취합 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\일반식품 (2606 올영세일) 온라인 단독 추가쿠폰 취합 양식.xlsx", "ended": true, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260701-위클리초특가-슬리핑보틀", "event_type": "위클리초특가", "channel": "올리브영", "workflow_stage": "컨펌대기", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-07-22", "end": "2026-07-28"}, "쿠폰할인": {"start": "2026-07-01", "end": "2026-07-31"}, "display": {"start": "2026-07-01", "end": "2026-07-31"}}, "period_note": "1안(매가할인, 4차수)과 2안(쿠폰할인, '중간 행사 협의 필요') 두 옵션이 병기되어 있어 최종 확정안 불명확", "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml (1안·매가할인 7/22~7/28)", "정상가": 5000, "행사가": 3290, "추가쿠폰": null, "최종행사가": 3090, "최종할인율": 0.382, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150015", "product_name": "슬리플러스 슬리핑보틀 100ml (1안·매가할인 7/22~7/28)", "정상가": 5000, "행사가": 3290, "추가쿠폰": null, "최종행사가": 3090, "최종할인율": 0.382, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml (2안·쿠폰할인 7/1~7/31, 최종가 협의중)", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": null, "최종할인율": null, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150015", "product_name": "슬리플러스 슬리핑보틀 100ml (2안·쿠폰할인 7/1~7/31, 최종가 협의중)", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": null, "최종할인율": null, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-05-12", "subject": "(가격수정)260512_26년 7차 위클리 초특가 모집_머스카.xlsx", "sender": null, "change_summary": "26년 7차 위클리 초특가 모집(가격수정본)에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(가격수정)260512_26년 7차 위클리 초특가 모집_머스카.xlsx — ⚠️ 1안/2안 두 옵션 중 최종 확정본 불명확, 사용자 확인 필요", "ended": false, "stale": true, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260701-위클리베러프라이스-슬리핑보틀", "event_type": "위클리베러프라이스", "channel": "올리브베러", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-07-01", "end": "2026-07-07"}, "쿠폰할인": null, "display": {"start": "2026-07-01", "end": "2026-07-07"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": null, "추가쿠폰": null, "최종행사가": 3400, "최종할인율": 0.32, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-05-20", "subject": "머스카_OB_26년 N차 위클리베러프라이스 취합 양식_헬시푸드팀.xlsx", "sender": null, "change_summary": "26년 7차 위클리베러프라이스(헬시푸드팀) 취합 엑셀에서 소싱, 행사시작일/종료일 원문 '7월 1일(수)'~'7월 7일(화)'", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\머스카_OB_26년 N차 위클리베러프라이스 취합 양식_헬시푸드팀.xlsx", "ended": true, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260710-브랜드이슈오특-슬리핑보틀", "event_type": "브랜드이슈_오특", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-07-10", "end": "2026-07-10"}, "쿠폰할인": null, "display": {"start": "2026-07-10", "end": "2026-07-10"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3400, "최종할인율": 0.32, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 19800, "최종할인율": 0.34, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-05-21", "subject": "26년 7월 브랜드이슈_오특_슬리플러스.xlsx", "sender": null, "change_summary": "26년 7월 브랜드이슈/오특 MKT플랜+온라인오특 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26년 7월 브랜드이슈_오특_슬리플러스.xlsx — 일정은 'MKT 플랜' 표의 7/10(금) 기준. 같은 날짜에 기존 H카테고리특가(evt-260710-h카테고리특가-슬리핑보틀라인, 7/10~7/20)가 별도로 진행 중이며 최종가가 서로 다름(브랜드이슈오특 3400/19800 vs H카테고리특가 3200/19000) — 겹침 여부 사용자 확인 필요", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260811-브랜드이슈오특-슬리핑보틀4개입", "event_type": "브랜드이슈_오특", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-08-11", "end": "2026-08-11"}, "쿠폰할인": null, "display": {"start": "2026-08-11", "end": "2026-08-11"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": null, "product_name": "[올영단독/온열안대증정] 슬리플러스X카카오프렌즈 슬리핑보틀 100ml 4개입 (A000000259811)", "정상가": 20000, "행사가": 16000, "추가쿠폰": null, "최종행사가": 14000, "최종할인율": 0.3, "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-06-22", "subject": "26년 8월 브랜드이슈_오특_슬리플러스.xlsx", "sender": null, "change_summary": "26년 8월 브랜드이슈/오특 MKT플랜+온라인오특 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26년 8월 브랜드이슈_오특_슬리플러스.xlsx — 일정은 'MKT 플랜' 표의 8/11(화) 기준. 상품코드(88) 컬럼 공란, A코드만 확인됨", "ended": false, "stale": false, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260801-베러pick-슬리핑보틀", "event_type": "베러PICK", "channel": "올리브베러", "workflow_stage": "컨펌대기", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-08-01", "end": "2026-08-29"}, "쿠폰할인": null, "display": {"start": "2026-08-01", "end": "2026-08-29"}}, "period_note": "베러픽특가(우측 열)는 '기간 미정'으로 별도 표기, 3번째 상품(4개입 기획)은 '역제안 예정'으로 미확정", "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 4000, "최종할인율": 0.2, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 21600, "최종할인율": 0.28, "margin_rate": null, "supply_price": null}, {"product_code": "8809753150084", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 4개입 기획 (+온열 수면안대 증정)", "정상가": 20000, "행사가": 16000, "추가쿠폰": null, "최종행사가": 14000, "최종할인율": 0.3, "비고": "역제안 예정, 미확정", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": null, "mail_link": null, "calendar_event_id": null, "history": [{"message_id": null, "thread_id": null, "received_date": "2026-06-24", "subject": "26.06.24_8월 올리브베러픽.xlsx", "sender": null, "change_summary": "8월 올리브베러픽 제안 엑셀에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\26.06.24_8월 올리브베러픽.xlsx — SEG 나이트케어. 8/1~8/31 매가할인 제안안, 3번째 상품은 그레이스 역제안 대기중", "ended": false, "stale": true, "ppm_match": {"round": 8, "label": "8차 PPM", "end_date": "2026-08-29", "explicit": false}}, {"id": "evt-260830-이번세일키워드-슬리핑보틀", "event_type": "이번세일키워드", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": {"start": "2026-08-30", "end": "2026-09-05"}, "쿠폰할인": null, "display": {"start": "2026-08-30", "end": "2026-09-05"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150084", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 4개입 기획 (+온열 수면안대 증정)", "정상가": 20000, "행사가": 16000, "추가쿠폰": null, "최종행사가": 14080, "최종할인율": 0.29, "비고": "정률쿠폰 12%", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 20930, "최종할인율": 0.3, "비고": "정률쿠폰 9%", "margin_rate": null, "supply_price": null}, {"product_code": "8809753150060", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml", "정상가": 5000, "행사가": 4000, "추가쿠폰": null, "최종행사가": 3600, "최종할인율": 0.28, "비고": "정률쿠폰 10%", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "구민지", "email": "minji.koo@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19ef88ad880e215d", "calendar_event_id": null, "history": [{"message_id": "19ef88ad880e215d", "thread_id": "19ef88ad880e215d", "received_date": "2026-06-24", "subject": "[올리브영/건강식품] '26년 9월 올영세일 전사 차별화 행사 모집 안내의 건 - 6/25(목) 오전 중", "sender": "minji.koo@graceint.com", "change_summary": "원본 모집 메일 확인 — 채널 올리브영 확정(2026-07-10 대화에서 메일 재조회로 검증)", "snapshot": null}, {"message_id": null, "thread_id": null, "received_date": "2026-06-26", "subject": "(수정2_260626)2609_올영세일_모집파일_슬리플러스.xlsx", "sender": null, "change_summary": "26년 9월 올영세일 '이번 세일 키워드' 취합 엑셀(수정2)에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(수정2_260626)2609_올영세일_모집파일_슬리플러스.xlsx — 시트'(2) 이번 세일 키워드'. 채널은 원본 메일 제목 '[올리브영/건강식품]'으로 올리브영 확정(2026-07-10 검증). ⚠️ 파일 내 PPM 참조가 '8차PPM'으로 기재되어 있으나(직전 소행사명 컬럼), 기존 events.json에 그레이스 메일(2026-07-10, 더 최신)로 확정된 ppm_rounds 기준 8차 PPM 종료일은 2026-08-29, 9차 PPM 시작일은 2026-08-30 — 8/30~9/5는 9차 구간에 더 가까움. 파일이 메일보다 오래된 리비전이라 ppm_round_ref는 확정하지 않음, 사용자 확인 필요. | 같은 스레드(19ef88ad880e215d)에 2026-07-09~07-10 사이 'Better Gift 행사안 검토 요청'이라는 후속 메일이 더 있음 — 아직 events.json에 미반영, 별도 확인 필요", "ended": false, "stale": false, "ppm_match": {"round": 9, "label": "9차 PPM", "end_date": null, "explicit": false}}, {"id": "evt-260900-일반추가쿠폰-슬리핑보틀", "event_type": "일반추가쿠폰", "channel": "올리브영", "workflow_stage": "확정", "products": ["슬리핑보틀"], "date_windows": {"매가할인": null, "쿠폰할인": null, "display": {"start": "2026-08-30", "end": "2026-09-05"}}, "period_note": null, "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150077", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 6개입", "정상가": 30000, "행사가": 23000, "추가쿠폰": null, "최종행사가": 20700, "최종할인율": 0.31, "비고": "정률쿠폰 10%", "margin_rate": null, "supply_price": null}], "asset_checklist": [], "contact": {"name": "구민지", "email": "minji.koo@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19ef88ad880e215d", "calendar_event_id": null, "history": [{"message_id": "19ef88ad880e215d", "thread_id": "19ef88ad880e215d", "received_date": "2026-06-24", "subject": "[올리브영/건강식품] '26년 9월 올영세일 전사 차별화 행사 모집 안내의 건 - 6/25(목) 오전 중", "sender": "minji.koo@graceint.com", "change_summary": "원본 모집 메일 확인 — 채널 올리브영 확정(2026-07-10 대화에서 메일 재조회로 검증)", "snapshot": null}, {"message_id": null, "thread_id": null, "received_date": "2026-06-26", "subject": "(수정2_260626)2609_올영세일_모집파일_슬리플러스.xlsx", "sender": null, "change_summary": "26년 9월 올영세일 일반 추가쿠폰 취합 엑셀(수정2)에서 소싱", "snapshot": null}], "notes": "엑셀 파일 소싱: C:\\Users\\ADMIN\\Work\\02. 올리브영 기획전\\(수정2_260626)2609_올영세일_모집파일_슬리플러스.xlsx — 시트'(3) 일반 추가 쿠폰'. 기간(8/30~9/5)은 2026-07-10 대화에서 사용자가 확인해 반영(같은 9월 올영세일 소싱의 세그위크·이번세일키워드 건과 동일 기간). 채널은 원본 메일 제목 '[올리브영/건강식품]'으로 올리브영 확정(2026-07-10 검증).", "ended": false, "stale": false, "ppm_match": {"round": 9, "label": "9차 PPM", "end_date": null, "explicit": false}}, {"id": "evt-260830-베러기프트-슬리핑보틀", "event_type": "베러기프트", "channel": "올리브베러", "workflow_stage": "소재제작중", "products": ["슬리핑보틀"], "date_windows": {"매가할인": null, "쿠폰할인": null, "display": {"start": "2026-08-30", "end": "2026-09-05"}}, "period_note": "Better Gift 메일 자체엔 명시적 기간이 없음 — 같은 스레드의 9월 올영세일(8/30~9/5) 프로그램 중 하나로 진행되는 맥락이라 그 기간으로 표시(추정), 그레이스 확인 권장", "reply_deadline": null, "ppm_round_ref": null, "price_rows": [{"product_code": "8809753150084", "product_name": "슬리플러스 카카오프렌즈 슬리핑보틀 100ml 4개입 기획 (+온열 수면안대 증정)", "정상가": 20000, "행사가": 16000, "추가쿠폰": 2400, "최종행사가": 13600, "최종할인율": 0.32, "비고": "정액쿠폰 2,400원. Better Gift는 일반추가쿠폰(같은 상품 최종 14,080원)보다 상위 구좌라 그레이스가 하이어라키에 맞춰 더 낮은 가격으로 재조정 제시, 확정. A코드(Better Gift 전용): A000000259811", "margin_rate": null, "supply_price": null}], "asset_checklist": [{"item": "4개입 상품 썸네일 교체 전달", "done": true, "note": "2026-07-10 그레이스에 전달 완료"}], "contact": {"name": "구민지", "email": "minji.koo@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19f462c8bc1cde9e", "calendar_event_id": null, "history": [{"message_id": "19f462c8bc1cde9e", "thread_id": "19ef88ad880e215d", "received_date": "2026-07-09", "subject": "[Better Gift 행사안 검토 요청 - 7/10(금) 오전 중] Re: ...", "sender": "minji.koo@graceint.com", "change_summary": "그레이스가 올리브베러 차별화행사 'Better Gift' 참여 제안 요청 — 일반추가쿠폰(14,080원)보다 낮은 가격 검토 요청, 회신기한 7/10(금) 오전", "snapshot": null}, {"message_id": "19f4640a64299571", "thread_id": "19ef88ad880e215d", "received_date": "2026-07-09", "subject": "Re: [Better Gift 행사안 검토 요청 - 7/10(금) 오전 중] ...", "sender": "yoon@muska.kr", "change_summary": "1차 회신 — 일반추가쿠폰과 동일한 14,080원으로 참여 진행 통보", "snapshot": null}, {"message_id": "19f4a1e7da145d1f", "thread_id": "19ef88ad880e215d", "received_date": "2026-07-10", "subject": "Re: [Better Gift 행사안 검토 요청 - 7/10(금) 오전 중] ...", "sender": "minji.koo@graceint.com", "change_summary": "그레이스가 행사 하이어라키 기준으로 재조정한 가격 제시 — 정액쿠폰 2,400원 적용, 최종 13,600원(32%)으로 확정", "snapshot": null}, {"message_id": "19f4a669006320be", "thread_id": "19ef88ad880e215d", "received_date": "2026-07-10", "subject": "Re: [Better Gift 행사안 검토 요청 - 7/10(금) 오전 중] ...", "sender": "yoon@muska.kr", "change_summary": "가격 확정 후 기획전 노출 링크 확인, 4개입 상품 썸네일 교체 전달 — 소재 진행 중", "snapshot": null}], "notes": "동일 상품(슬리핑보틀 4개입 기획, 8809753150084)이 '이번세일키워드'/'일반추가쿠폰' 건에도 등장 — 그레이스 안내상 Better Gift 미선정 시 기존 일반추가쿠폰 매가로 자동 제출 예정이라고 했으나 이번 건은 선정되어 확정됨. 세 건 다 같은 상품·같은 기간이라 행사 테이블에서 서로 겹침으로 표시될 수 있음(동시 진행되는 게 맞음, 오류 아님).", "ended": false, "stale": false, "ppm_match": {"round": 9, "label": "9차 PPM", "end_date": null, "explicit": false}}], "warnings": [{"severity": "red", "type": "event-event", "message": "H카테고리특가(올리브영) ↔ 브랜드이슈_오특(올리브영) 기간 겹침 — 슬리핑보틀", "event_ids": ["evt-260710-h카테고리특가-슬리핑보틀라인", "evt-260710-브랜드이슈오특-슬리핑보틀"]}, {"severity": "amber", "type": "ppm-boundary-adjacent", "message": "8차 PPM 종료(2026-08-29)와 9차 PPM 시작(2026-08-30)이 인접 — 베러PICK/세그위크 확인 필요", "event_ids": ["evt-2608-베러pick-슬리프레소", "evt-2609-세그위크-슬리프레소"]}, {"severity": "amber", "type": "deadline-soon", "message": "세그위크(올리브베러) 회신마감 2026-07-13 (D-3)", "event_ids": ["evt-2609-세그위크-슬리프레소"]}], "action_queue": [{"severity": "amber", "title": "세그위크(올리브베러) 회신 필요", "subtitle": "김다연 2026-07-10 메일, 마감 2026-07-13(D-3) · 참고: 슬리프레소 최근 확정가 7,500원 (베러PICK 2026-08-01)", "deadline": "2026-07-13", "days_left": 3, "dday": "D-3", "mail_links": [{"label": "세그위크 메일", "url": "https://mail.google.com/mail/u/0/#all/19f49779566dfbe0"}], "event_ids": ["evt-2609-세그위크-슬리프레소"]}, {"severity": "red", "title": "H카테고리특가(올리브영) ↔ 브랜드이슈_오특(올리브영) 기간 겹침 — 슬리핑보틀", "subtitle": "데이터 정합성 확인 필요", "deadline": null, "days_left": null, "dday": null, "mail_links": [{"label": "H카테고리특가 메일", "url": "https://mail.google.com/mail/u/0/#all/19eeccd65ee290ee"}], "event_ids": ["evt-260710-h카테고리특가-슬리핑보틀라인", "evt-260710-브랜드이슈오특-슬리핑보틀"]}, {"severity": "amber", "title": "8차 PPM 종료(2026-08-29)와 9차 PPM 시작(2026-08-30)이 인접 — 베러PICK/세그위크 확인 필요", "subtitle": "데이터 정합성 확인 필요", "deadline": null, "days_left": null, "dday": null, "mail_links": [{"label": "베러PICK 메일", "url": "https://mail.google.com/mail/u/0/#all/19f36ae1a264cf9b"}, {"label": "세그위크 메일", "url": "https://mail.google.com/mail/u/0/#all/19f49779566dfbe0"}], "event_ids": ["evt-2608-베러pick-슬리프레소", "evt-2609-세그위크-슬리프레소"]}, {"severity": "amber", "title": "9차 PPM 종료일 미확정 — 그레이스 확인 요청", "subtitle": "시작 2026-08-30 이후 종료일 공지 없음", "deadline": null, "days_left": null, "dday": null, "mail_links": [{"label": "관련 메일", "url": "https://mail.google.com/mail/u/0/#all/19f49779566dfbe0"}], "event_ids": []}], "reply_helper": [{"event_id": "evt-2609-세그위크-슬리프레소", "title": "세그위크 · 올리브베러", "products": ["슬리프레소"], "deadline": "2026-07-13", "dday": "D-3", "dday_urgent": true, "contact": {"name": "김다연", "email": "dayeon.kim@graceint.com"}, "mail_link": "https://mail.google.com/mail/u/0/#all/19f49779566dfbe0", "checks": [{"ok": true, "text": "행사 기간 2026-08-30 ~ 2026-09-05"}, {"ok": null, "text": "9차 PPM 구간 적용 (2026-08-30 ~ 종료일 미정)"}, {"ok": false, "text": "8차 PPM 종료(2026-08-29)와 9차 PPM 시작(2026-08-30)이 인접 — 베러PICK/세그위크 확인 필요"}], "recos": [{"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "행사매가", "normal": 12900, "supply": null, "count": 10, "history": [{"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}, {"event_id": "evt-260710-h카테고리특가-슬리프레소", "event_type": "H카테고리특가", "channel": "올리브영", "date": "2026-07-10", "final": 7500, "행사가": 9900, "쿠폰": 2400}, {"event_id": "evt-260531-온라인단독추가쿠폰-슬리프레소", "event_type": "온라인단독추가쿠폰", "channel": "올리브영", "date": "2026-05-31", "final": 8910, "행사가": 9900, "쿠폰": null}, {"event_id": "evt-260522-오특-슬리프레소", "event_type": "오특", "channel": "올리브베러", "date": "2026-05-22", "final": 7500, "행사가": 9900, "쿠폰": 2400}], "reco": {"min": 7500, "max": 8910, "recent": {"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}}, "margin": null}, {"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "세그위크가", "normal": 12900, "supply": null, "count": 10, "history": [{"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}, {"event_id": "evt-260710-h카테고리특가-슬리프레소", "event_type": "H카테고리특가", "channel": "올리브영", "date": "2026-07-10", "final": 7500, "행사가": 9900, "쿠폰": 2400}, {"event_id": "evt-260531-온라인단독추가쿠폰-슬리프레소", "event_type": "온라인단독추가쿠폰", "channel": "올리브영", "date": "2026-05-31", "final": 8910, "행사가": 9900, "쿠폰": null}, {"event_id": "evt-260522-오특-슬리프레소", "event_type": "오특", "channel": "올리브베러", "date": "2026-05-22", "final": 7500, "행사가": 9900, "쿠폰": 2400}], "reco": {"min": 7500, "max": 8910, "recent": {"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}}, "margin": null}, {"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "OB오늘의특가", "normal": 12900, "supply": null, "count": 10, "history": [{"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}, {"event_id": "evt-260710-h카테고리특가-슬리프레소", "event_type": "H카테고리특가", "channel": "올리브영", "date": "2026-07-10", "final": 7500, "행사가": 9900, "쿠폰": 2400}, {"event_id": "evt-260531-온라인단독추가쿠폰-슬리프레소", "event_type": "온라인단독추가쿠폰", "channel": "올리브영", "date": "2026-05-31", "final": 8910, "행사가": 9900, "쿠폰": null}, {"event_id": "evt-260522-오특-슬리프레소", "event_type": "오특", "channel": "올리브베러", "date": "2026-05-22", "final": 7500, "행사가": 9900, "쿠폰": 2400}], "reco": {"min": 7500, "max": 8910, "recent": {"event_id": "evt-2608-베러pick-슬리프레소", "event_type": "베러PICK", "channel": "올리브베러", "date": "2026-08-01", "final": 7500, "행사가": 8500, "쿠폰": null}}, "margin": null}], "form": [{"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "행사매가", "normal": 12900, "행사가": null, "최종행사가": null, "추천": 7500}, {"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "세그위크가", "normal": 12900, "행사가": null, "최종행사가": null, "추천": 7500}, {"code": "8809753150046", "name": "슬리프레소 디카페인 콜드브루 2g 10개입", "ask_label": "OB오늘의특가", "normal": 12900, "행사가": null, "최종행사가": null, "추천": 7500}]}], "status_meta": {"회신대기": {"label": "회신대기", "color": "#dc2626", "bg": "rgba(220,38,38,0.12)"}, "컨펌대기": {"label": "컨펌대기", "color": "#d97706", "bg": "rgba(217,119,6,0.12)"}, "확정": {"label": "확정", "color": "#16a34a", "bg": "rgba(22,163,74,0.12)"}, "소재제작중": {"label": "소재제작중", "color": "#3D3FA8", "bg": "rgba(61,63,168,0.12)"}, "완료": {"label": "완료", "color": "#55556f", "bg": "rgba(140,140,168,0.14)"}}, "supply_missing": true, "stale_days": 14, "logo": "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"};
+
+document.getElementById('generated').textContent = '업데이트: ' + D.generated;
+document.getElementById('staleDays').textContent = D.stale_days;
+if (D.logo) document.getElementById('logoImg').src = 'data:image/png;base64,' + D.logo;
+
+document.querySelectorAll('.side-link').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.side-link').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  };
+});
+
+const channelColor = c => ({ '올리브영': '#C8F135', '올리브베러': '#6366b8' }[c] || '#888');
+const won = v => '₩' + v.toLocaleString('ko-KR');
+
+// ── 로컬 상태 (브라우저 저장 — 재생성/새로고침에도 유지) ──
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+};
+const HIDDEN_KEY = 'oy-tracker-hidden-events';
+const DISMISSED_KEY = 'oy-tracker-dismissed-actions';
+const MEMO_KEY = 'oy-tracker-memos';
+
+// ── 진행상황 (컴팩트 테이블) ──
+function renderActionQueue() {
+  const el = document.getElementById('actionQueue');
+  const dismissed = store.get(DISMISSED_KEY, []);
+  const items = D.action_queue.filter(a => !dismissed.includes(a.title));
+  document.getElementById('actionCount').textContent = items.length;
+  document.getElementById('navProgressCount').textContent = items.length || '';
+
+  const memos = store.get(MEMO_KEY, {});
+  let html = items.map(a => {
+    const linksHtml = (a.mail_links || []).map(l => '<a class="action-btn" href="' + l.url + '" target="_blank" rel="noopener">' + l.label + '</a>').join('');
+    const memoKey = encodeURIComponent(a.title);
+    const memoVal = (memos[a.title] || '').replace(/"/g, '&quot;');
+    return '<div class="action-item sev-' + a.severity + '">' +
+      (a.dday ? '<div class="action-dday">' + a.dday + '</div>' : '<div class="action-dday">·</div>') +
+      '<div class="action-body"><div class="action-title">' + a.title + '</div><div class="action-sub">' + (a.subtitle || '') + '</div>' +
+      '<input class="memo-input" data-memo-act="' + memoKey + '" value="' + memoVal + '" placeholder="메모 입력"></div>' +
+      '<div class="action-links">' + linksHtml + '</div>' +
+      '<button class="x-btn action-x" data-dismiss="' + encodeURIComponent(a.title) + '" title="확인 완료 — 목록에서 제거">✕</button>' +
+      '</div>';
+  }).join('');
+  if (!items.length) html = '<div class="action-empty">✅ 지금 확인이 필요한 항목이 없습니다</div>';
+  if (dismissed.length) html += '<div class="restore-note">확인 완료 처리한 항목 ' + dismissed.length + '개 · <a id="restoreActions">모두 복원</a></div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-memo-act]').forEach(inp => inp.onchange = () => {
+    const key = decodeURIComponent(inp.dataset.memoAct);
+    const m = store.get(MEMO_KEY, {});
+    if (inp.value.trim()) m[key] = inp.value.trim(); else delete m[key];
+    store.set(MEMO_KEY, m);
+  });
+
+  el.querySelectorAll('[data-dismiss]').forEach(b => b.onclick = () => {
+    const t = decodeURIComponent(b.dataset.dismiss);
+    const d = store.get(DISMISSED_KEY, []);
+    if (!d.includes(t)) d.push(t);
+    store.set(DISMISSED_KEY, d);
+    renderActionQueue();
+    renderEventTable();
+  });
+  const ra = document.getElementById('restoreActions');
+  if (ra) ra.onclick = () => { store.set(DISMISSED_KEY, []); renderActionQueue(); renderEventTable(); };
+}
+
+// ── 행사 테이블 ──
+function shortName(n) {
+  return (n || '').replace(/\s*\([^)]*\)\s*$/, '').replace('슬리플러스 ', '');
+}
+function priceCell(priceRows) {
+  const rows = (priceRows || []).filter(r => r.최종행사가 != null);
+  if (!rows.length) return '<span class="et-empty-note">미확정</span>';
+  return '<div class="price-inline">' + rows.map(r =>
+    '<span class="price-item"><span class="pl-name" title="' + (r.product_name || '') + '">' +
+    (r.ask_label && r.ask_label !== '행사가' ? '<span class="ask-badge">' + r.ask_label + '</span>' : '') +
+    shortName(r.product_name) + '</span>' +
+    '<span class="pl-price">' + won(r.최종행사가) +
+    (r.margin_rate != null ? ' <span style="font-weight:500;color:var(--text-muted)">(마진 ' + Math.round(r.margin_rate * 100) + '%)</span>' : '') +
+    '</span></span>'
+  ).join('') + '</div>';
+}
+
+const STAGE_ORDER = ['회신대기', '컨펌대기', '확정', '소재제작중', '완료'];
+
+// 같은 행사(event_type·채널·기간)가 상품별로 여러 개 JSON 항목으로 나뉜 경우 한 행으로 합친다
+// (예: 베러PICK 슬리프레소 건과 베러PICK 슬리핑보틀 건이 같은 기간이면 한 줄로)
+function groupEvents(events) {
+  const groups = new Map();
+  events.forEach(e => {
+    const dw = e.date_windows.display;
+    const key = e.event_type + '|' + e.channel + '|' + (dw ? dw.start + '~' + dw.end : 'nodate-' + e.id);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  });
+  return Array.from(groups.values()).map(members => {
+    if (members.length === 1) {
+      const e = members[0];
+      return { ids: [e.id], event_type: e.event_type, channel: e.channel, date_windows: e.date_windows,
+        period_note: e.period_note, ended: e.ended, stale: e.stale, workflow_stage: e.workflow_stage,
+        price_rows: e.price_rows, ppm_match: e.ppm_match, contact: e.contact, mail_link: e.mail_link };
+    }
+    const stage = members.slice().sort((a, b) => STAGE_ORDER.indexOf(a.workflow_stage) - STAGE_ORDER.indexOf(b.workflow_stage))[0].workflow_stage;
+    return {
+      ids: members.map(e => e.id),
+      event_type: members[0].event_type, channel: members[0].channel, date_windows: members[0].date_windows,
+      period_note: members[0].period_note,
+      ended: members.every(e => e.ended), stale: members.every(e => e.stale),
+      workflow_stage: stage,
+      price_rows: members.flatMap(e => e.price_rows || []),
+      ppm_match: (members.find(e => e.ppm_match) || {}).ppm_match || null,
+      contact: (members.find(e => e.contact) || {}).contact || null,
+      mail_link: (members.find(e => e.mail_link) || {}).mail_link || null,
+    };
+  });
+}
+
+function renderEventTable() {
+  const showPast = document.getElementById('showPastToggle').checked;
+  const showHidden = document.getElementById('showHiddenToggle').checked;
+  const hidden = store.get(HIDDEN_KEY, []);
+  const dismissed = store.get(DISMISSED_KEY, []);
+  const past = D.events.filter(e => e.ended);
+  document.getElementById('pastCount').textContent = past.length;
+  document.getElementById('hiddenCount').textContent = hidden.length;
+
+  const grouped = groupEvents(D.events);
+  const rows = grouped.filter(g => (showPast || !g.ended) && (showHidden || !g.ids.some(id => hidden.includes(id)))).sort((a, b) => {
+    const ad = a.date_windows.display ? new Date(a.date_windows.display.start) : null;
+    const bd = b.date_windows.display ? new Date(b.date_windows.display.start) : null;
+    if (ad && bd) return ad - bd;
+    if (ad) return -1;
+    if (bd) return 1;
+    return 0;
+  });
+
+  const tbody = document.getElementById('eventTableBody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="et-empty-note" style="text-align:center;padding:18px 0;">표시할 행사가 없습니다</td></tr>';
+    return;
+  }
+
+  const warnShort = w => ({
+    'event-event': '기간 겹침', 'event-ppm-mismatch': 'PPM 기간 불일치',
+    'ppm-boundary-adjacent': 'PPM 경계 확인', 'deadline-soon': '마감 임박'
+  }[w.type] || '확인 필요');
+
+  let html = '';
+  let curMonth = null;
+  rows.forEach(g => {
+    const dw = g.date_windows.display;
+    const monthKey = dw ? dw.start.slice(0, 7) : 'none';
+    if (monthKey !== curMonth) {
+      curMonth = monthKey;
+      const label = dw ? (parseInt(monthKey.slice(0, 4)) + '년 ' + parseInt(monthKey.slice(5, 7)) + '월') : '기간 미확정';
+      html += '<tr class="month-sep"><td colspan="8">' + label + '</td></tr>';
+    }
+
+    let sm = D.status_meta[g.workflow_stage] || { label: g.workflow_stage, color: '#888', bg: 'rgba(136,136,136,0.1)' };
+    if (g.stale) sm = { label: '무응답 ' + D.stale_days + '일+', color: '#9393ac', bg: 'rgba(140,140,168,0.14)' };
+    const period = dw ? (dw.start.slice(5).replace('-', '/') + ' ~ ' + dw.end.slice(5).replace('-', '/'))
+      : (g.period_note ? '<span class="et-empty-note">' + g.period_note + '</span>' : '<span class="et-empty-note">미확정</span>');
+    let ppmCell = '<span class="et-empty-note">—</span>';
+    if (g.ppm_match) {
+      ppmCell = '<span class="et-ppm' + (g.ppm_match.explicit ? '' : ' inferred') + '">' + g.ppm_match.label +
+        (g.ppm_match.explicit ? '' : ' (추정)') + '</span>';
+    }
+    const contact = g.contact ? g.contact.name : '';
+    const mailBtn = g.mail_link ? '<a class="et-mail-link" href="' + g.mail_link + '" target="_blank" rel="noopener">메일</a>' : '';
+    const channelPill = '<span class="channel-tag"><span class="swatch" style="background:' + channelColor(g.channel) + '"></span>' + g.channel + '</span>';
+
+    // 확인 완료(진행상황 ✕) 처리 안 된 경고만 짧은 칩으로 — 전체 문구는 툴팁과 진행상황에
+    const evWarns = D.warnings.filter(w => (w.event_ids || []).some(id => g.ids.includes(id)) && !dismissed.includes(w.message));
+    const warnSev = evWarns.reduce((acc, w) => w.severity === 'red' ? 'red' : (acc === 'red' ? acc : w.severity), null);
+    const warnCls = warnSev ? ' row-warn-' + warnSev : '';
+    const warnChips = evWarns.length
+      ? '<div>' + evWarns.map(w => '<span class="warn-chip sev-' + w.severity + '" title="' + w.message.replace(/"/g, '&quot;') + '">⚠ ' + warnShort(w) + '</span>').join('') + '</div>'
+      : '';
+
+    const isHidden = g.ids.some(id => hidden.includes(id));
+    const idsAttr = g.ids.join(',');
+    const xBtn = isHidden
+      ? '<button class="x-btn restore" data-unhide="' + idsAttr + '" title="복원">↺</button>'
+      : '<button class="x-btn" data-hide="' + idsAttr + '" title="목록에서 지우기">✕</button>';
+
+    html += '<tr class="' + (g.ended ? 'row-ended' : '') + warnCls + (isHidden ? ' row-ended' : '') + '">' +
+      '<td>' + channelPill + '</td>' +
+      '<td><div class="et-name">' + g.event_type + '</div>' + warnChips + '</td>' +
+      '<td><span class="status-pill" style="color:' + sm.color + ';background:' + sm.bg + '">' + sm.label + '</span></td>' +
+      '<td style="white-space:nowrap;">' + period + '</td>' +
+      '<td>' + priceCell(g.price_rows) + '</td>' +
+      '<td>' + ppmCell + '</td>' +
+      '<td><div class="et-contact">' + contact + '</div>' + mailBtn + '</td>' +
+      '<td class="x-cell">' + xBtn + '</td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+
+  tbody.querySelectorAll('[data-hide]').forEach(b => b.onclick = () => {
+    const h = store.get(HIDDEN_KEY, []);
+    b.dataset.hide.split(',').forEach(id => { if (!h.includes(id)) h.push(id); });
+    store.set(HIDDEN_KEY, h);
+    renderEventTable();
+  });
+  tbody.querySelectorAll('[data-unhide]').forEach(b => b.onclick = () => {
+    const remove = b.dataset.unhide.split(',');
+    store.set(HIDDEN_KEY, store.get(HIDDEN_KEY, []).filter(x => !remove.includes(x)));
+    renderEventTable();
+  });
+}
+document.getElementById('showPastToggle').addEventListener('change', renderEventTable);
+document.getElementById('showHiddenToggle').addEventListener('change', renderEventTable);
+renderActionQueue();
+renderEventTable();
+
+if (D.supply_missing) {
+  document.getElementById('supplyNote').textContent = '💡 공급가 미입력 — supply_prices.json에 상품코드별 공급가를 입력하면 마진율이 표시됩니다.';
+}
+
+// ── 회신 도우미 ──
+(function renderReplyHelper() {
+  const el = document.getElementById('replyCards');
+  document.getElementById('navReplyCount').textContent = D.reply_helper.length || '';
+  if (!D.reply_helper.length) {
+    el.innerHTML = '<div class="card"><div class="action-empty">📭 회신 대기 중인 행사 메일이 없습니다. 그레이스에서 새 모집 메일이 오면 여기에 정리됩니다.</div></div>';
+    return;
+  }
+  el.innerHTML = D.reply_helper.map(h => {
+    const dday = h.dday ? '<span class="dday-badge ' + (h.dday_urgent ? 'sev-red' : '') + '" style="font-size:12px;font-weight:800;padding:4px 10px;border-radius:8px;' + (h.dday_urgent ? 'color:var(--red);background:var(--red-bg);' : 'color:var(--text-muted);background:var(--gray-bg);') + '">마감 ' + h.deadline + ' (' + h.dday + ')</span>' : '';
+    const contact = h.contact ? h.contact.name + ' (' + h.contact.email + ')' : '';
+    const mailBtn = h.mail_link ? '<a class="action-btn" href="' + h.mail_link + '" target="_blank" rel="noopener">원본 메일 열기</a>' : '';
+
+    const checksHtml = h.checks.map(c => {
+      const ic = c.ok === true ? '✅' : (c.ok === false ? '🔴' : '⚠️');
+      const cls = c.ok === true ? '' : (c.ok === false ? ' bad' : ' unknown');
+      return '<div class="check-line' + cls + '"><span>' + ic + '</span><span>' + c.text + '</span></div>';
+    }).join('');
+
+    const recosHtml = h.recos.map(r => {
+      let range = '<span class="et-empty-note">과거 확정 이력 없음 — 정상가 대비 할인율로 제안 필요</span>';
+      if (r.reco) {
+        const rangeTxt = r.reco.min === r.reco.max ? won(r.reco.min) : won(r.reco.min) + ' ~ ' + won(r.reco.max);
+        const marginTxt = r.margin != null ? '<span class="margin">마진 ' + Math.round(r.margin * 100) + '%</span>' : '';
+        range = '<span class="reco-range">' + rangeTxt + marginTxt + '</span>';
+      }
+      const hist = (r.history || []).map(hh =>
+        '<span class="hist-chip">' + hh.event_type + ' ' + (hh.date || '') + ' · 최종 ' + won(hh.final) + (hh.행사가 ? ' (행사가 ' + won(hh.행사가) + ')' : '') + '</span>'
+      ).join('');
+      const calcId = 'calc-' + h.event_id + '-' + (r.code || 'x') + '-' + r.ask_label;
+      const calc = r.normal ? (
+        '<div class="calc-row" data-normal="' + r.normal + '" data-count="' + (r.count || 1) + '">' +
+        '<label>행사가 <input type="number" class="calc-input calc-price" id="' + calcId + '-price" placeholder="' + (r.reco ? r.reco.recent.final : r.normal) + '"></label>' +
+        '<label>추가쿠폰 <input type="number" class="calc-input calc-coupon" id="' + calcId + '-coupon" placeholder="0"></label>' +
+        '<div class="calc-result" id="' + calcId + '-out">' +
+        '<span>최종행사가 <b>—</b></span><span>할인율 <b>—</b></span><span class="unit">개당 <b>—</b></span></div>' +
+        '</div>'
+      ) : '';
+      const askBadge = r.ask_label && r.ask_label !== '행사가' ? '<span class="ask-badge">' + r.ask_label + '</span>' : '';
+      return '<div class="reco-block">' +
+        '<div class="reco-head"><span class="reco-name">' + askBadge + r.name + '<span class="code">' + (r.code || '') + '</span></span>' + range + '</div>' +
+        (r.normal ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">정상가 ' + won(r.normal) + (r.supply != null ? ' · 공급가 ' + won(r.supply) : '') + (r.count > 1 ? ' · ' + r.count + '개입' : '') + '</div>' : '') +
+        (hist ? '<div>' + hist + '</div>' : '') +
+        calc +
+        '</div>';
+    }).join('');
+
+    // 한 상품에 여러 가격을 동시에 요구하는 메일이면(ask_label 여러 개) 회신 양식에도 구분 컬럼을 넣는다
+    const multiAsk = new Set(h.form.map(f => f.ask_label)).size > 1;
+    const formHtml = '<table class="form-table"><thead><tr>' + (multiAsk ? '<th>구분</th>' : '') +
+      '<th>상품코드(바코드)</th><th>상품명</th><th>정상가</th><th>제안 행사가</th><th>최종행사가</th></tr></thead><tbody>' +
+      h.form.map(f => {
+        const calcKey = 'calc-' + h.event_id + '-' + (f.code || 'x') + '-' + f.ask_label;
+        const proposed = f.행사가 != null ? won(f.행사가)
+          : (f.추천 != null ? '<span class="suggest">' + won(f.추천) + ' (과거 확정가 기준 추천)</span>' : '<span class="fill-needed">계산기에서 가격 입력</span>');
+        let final_ = '<span class="fill-needed">계산기에서 가격 입력</span>';
+        if (f.최종행사가 != null && f.normal) {
+          const pct = Math.round((1 - f.최종행사가 / f.normal) * 100);
+          final_ = won(f.최종행사가) + ' <span style="color:var(--text-muted);font-weight:500;">(' + pct + '% 할인)</span>';
+        } else if (f.최종행사가 != null) {
+          final_ = won(f.최종행사가);
+        }
+        return '<tr>' + (multiAsk ? '<td><span class="ask-badge">' + f.ask_label + '</span></td>' : '') +
+          '<td style="font-family:ui-monospace,monospace;">' + (f.code || '<span class="fill-needed">확인 필요</span>') + '</td>' +
+          '<td>' + f.name + '</td>' +
+          '<td>' + (f.normal != null ? won(f.normal) : '<span class="fill-needed">확인 필요</span>') + '</td>' +
+          '<td id="' + calcKey + '-form-propose">' + proposed + '</td>' +
+          '<td id="' + calcKey + '-form-final">' + final_ + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="rh-note">※ A코드(올리브영 상품코드)·준비수량은 그레이스 취합 양식 원본에서 확인 후 기입. 위 계산기에 가격을 입력하면 이 표의 제안 행사가/최종행사가가 자동으로 채워집니다.</div>';
+
+    return '<div class="card">' +
+      '<div class="rh-head"><span class="rh-title">' + h.title + '</span>' + dday + '</div>' +
+      '<div class="rh-meta">담당 ' + contact + ' &nbsp; ' + mailBtn + '</div>' +
+      '<div class="rh-section"><div class="rh-section-title">일정 정합성</div>' + checksHtml + '</div>' +
+      '<div class="rh-section"><div class="rh-section-title">제안 가격 추천</div>' + recosHtml + '</div>' +
+      '<div class="rh-section"><div class="rh-section-title">회신 양식에 적을 것</div>' + formHtml + '</div>' +
+      '</div>';
+  }).join('');
+
+  el.querySelectorAll('.calc-row').forEach(row => {
+    const normal = parseFloat(row.dataset.normal);
+    const count = parseFloat(row.dataset.count) || 1;
+    const priceInp = row.querySelector('.calc-price');
+    const couponInp = row.querySelector('.calc-coupon');
+    const out = document.getElementById(priceInp.id.replace('-price', '-out'));
+    const proposeCell = document.getElementById(priceInp.id.replace('-price', '-form-propose'));
+    const finalCell = document.getElementById(priceInp.id.replace('-price', '-form-final'));
+    const recalc = () => {
+      const price = parseFloat(priceInp.value);
+      const coupon = parseFloat(couponInp.value) || 0;
+      if (!price || !normal) {
+        out.innerHTML = '<span>최종행사가 <b>—</b></span><span>할인율 <b>—</b></span><span class="unit">개당 <b>—</b></span>';
+        return;
+      }
+      const final_ = price - coupon;
+      const pct = Math.round((1 - final_ / normal) * 100);
+      const unit = Math.round(final_ / count);
+      out.innerHTML = '<span>최종행사가 <b>' + won(final_) + '</b></span><span>할인율 <b>' + pct + '%</b></span><span class="unit">개당 <b>' + won(unit) + '</b></span>';
+      if (proposeCell) proposeCell.textContent = won(price);
+      if (finalCell) finalCell.innerHTML = won(final_) + ' <span style="color:var(--text-muted);font-weight:500;">(' + pct + '% 할인)</span>';
+    };
+    priceInp.addEventListener('input', recalc);
+    couponInp.addEventListener('input', recalc);
+  });
+})();
+
+// ── PPM 현황 (그레이스 양식) ──
+(function renderPpm() {
+  const table = document.getElementById('ppmTable');
+  const rounds = D.ppm_status;
+  if (!D.ppm_table.length) {
+    table.innerHTML = '<tr><td class="et-empty-note">PPM에 연동된 상품 데이터가 없습니다</td></tr>';
+    return;
+  }
+  const hasSupply = D.ppm_table.some(r => r.supply != null);
+
+  // 헤더: 회차 열에 기간·D-day를 함께 표기 — 어느 회차 값인지 헷갈리지 않게
+  let thead = '<tr><th class="tl">코드</th><th class="tl">상품명</th><th>정상가</th>';
+  rounds.forEach(r => {
+    thead += '<th class="round-col' + (r.warn ? ' warn' : '') + '">' + r.label +
+      '<span class="round-sub">' + (r.start_date || '?') + ' ~ ' + (r.end_date || '미정') + '<br>' + r.dday_text + '</span></th>';
+  });
+  thead += '<th class="tl">비고</th></tr>';
+
+  const body = D.ppm_table.map(row => {
+    let tds = '<td class="code tl">' + row.code + '</td><td class="tl">' + row.name + '</td>' +
+      '<td>' + (row.normal != null ? row.normal.toLocaleString('ko-KR') : '—') + '</td>';
+    rounds.forEach(r => {
+      const cell = row.rounds[String(r.round)];
+      if (cell && cell.행사가 != null) {
+        const supplyLine = (hasSupply && row.supply != null)
+          ? '<span class="val-sub">공급가 ' + row.supply.toLocaleString('ko-KR') + ' (부가세 별도)</span>' : '';
+        tds += '<td class="val-cell">' + cell.행사가.toLocaleString('ko-KR') + supplyLine + '</td>';
+      } else {
+        tds += '<td class="no-val">해당 없음</td>';
+      }
+    });
+    tds += '<td class="note-cell">' + (row.note || '') + '</td>';
+    return '<tr>' + tds + '</tr>';
+  }).join('');
+
+  table.innerHTML = thead + body;
+})();
+</script>
+</body>
+</html>
